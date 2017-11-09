@@ -1,0 +1,33 @@
+--A Program is a sequence of Definitions
+PDefs.    Program ::= [Def] ;
+terminator Def "" ;
+
+--A Functions is...
+DFun.     Def     ::= Type Id ListArg Bdy ;
+
+DArg.     ListArg ::= "(" [Arg] ")"  ;
+terminator Arg ",";
+
+DBdy.	  Bdy     ::= "{" [Stm] "}" ;
+
+SExp.     Stm	  ::= Exp ";" ;
+--SRet	  Stm	  ::= "return" Stm ;
+SRet.	  Stm	  ::= "return" Exp ";" ;
+
+EInt.	  Exp16	  ::= Integer ;
+--EDouble.  Exp16	  ::= Double ;
+EString.  Exp16	  ::= String ;
+EQual.	  Exp16	  ::= Qual ;
+
+TInt.	  Type	  ::= "int" ;
+TQual.	  Type	  ::= Qual ;
+
+QSingle.  Qual	  ::= Id ;
+QList.	  Qual	  ::= Id "::" [Id] ;
+
+separator nonempty Id "::" ;
+
+token Ident1 (letter (letter | digit | '_')*) ;
+
+DId.   	  Id 	  ::= Ident1 ;
+
