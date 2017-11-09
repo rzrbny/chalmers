@@ -22,11 +22,11 @@ prop_empty = Empty == empty
 
 -- | The Integer value of a Rank
 valueRank :: Rank -> Integer
-valueRank (Numeric n) | n < 2  = 2
-                      | n > 10 = 10
-                      | True   = n
-valueRank Ace                  = 11
-valueRank _                    = 10
+valueRank (Numeric n) | n < 2       = 2
+                      | n > 10      = 10
+                      | otherwise   = n
+valueRank Ace                       = 11
+valueRank _                         = 10
 
 -- | Property: value of Rank is >= 2 and <= 11
 prop_valueTwoTen :: Rank -> Bool
