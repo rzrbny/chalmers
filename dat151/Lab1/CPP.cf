@@ -1,33 +1,96 @@
---A Program is a sequence of Definitions
 PDefs.    Program ::= [Def] ;
 terminator Def "" ;
 
---A Functions is...
-DFun.     Def     ::= Type Id ListArg Bdy ;
+--DFun.     Def     ::= Type Id "(" [Arg] ")" Bdy ;
+DQual.    Def     ::= "using" Qual ";" ;
+Dtype.    Def     ::= "typedef" Type Id ";" ;
+DVar.     Def     ::= Var ";" ;
+separator  Arg "," ;
 
-DArg.     ListArg ::= "(" [Arg] ")"  ;
-terminator Arg ",";
+BBlock.   Bdy     ::= "{" [Stm] "}" ;
+BEmpty.   Bdy     ::= ";" ;
+separator Stm "" ;
 
-DBdy.	  Bdy     ::= "{" [Stm] "}" ;
+AType.	  Arg 	 ::= Const Type ;
+ADec.	  Arg	 ::= Const Type Id ;
+AInit.	  Arg	 ::= Const Type Id "=" Exp;
 
-SExp.     Stm	  ::= Exp ";" ;
---SRet	  Stm	  ::= "return" Stm ;
+CDef.	  Const	  ::= "const" ;
+CNil.	  Const	  ::= ;
+
+--SExp.     Stm	  ::= Exp ";" ;
+SDec.     Stm     ::= Var ";" ;
+Stypedef. Stm     ::= "typedef" Type Id ";" ;
 SRet.	  Stm	  ::= "return" Exp ";" ;
+SWhile.   Stm     ::= "while" "(" Exp ")" Stm ;
+SDoWhile. Stm     ::= "do" Stm "while" "(" Exp ")" ";" ;
+SFor.     Stm     ::= "for" "(" Var ";" Exp ";" Exp ")" Stm ;
+SIf.      Stm     ::= "if" "(" Exp ")" Stm ;
+SIfElse.  Stm     ::= "if" "(" Exp ")" Stm "else" Stm ;
+SBlock.   Stm     ::= "{" [Stm] "}" ;
+
+VDef.     Var      ::= Const Type [VarDec] ;
+--VConst.   Var      ::= "const" Type [VarDec] ;
+separator nonempty VarDec "," ;
+
+VDec.     VarDec     ::= Id ;
+VAss.     VarDec     ::= Id "=" Exp ;
 
 EInt.	  Exp16	  ::= Integer ;
---EDouble.  Exp16	  ::= Double ;
-EString.  Exp16	  ::= String ;
+EDouble.  Exp16	  ::= Double ;
+Echar.    Exp16   ::= Char ;
+EString.  Exp16   ::= [String] ;
 EQual.	  Exp16	  ::= Qual ;
+EInd.     Exp15   ::= Exp15 "[" Exp "]" ;
+Efcn.     Exp15   ::= Exp15 "(" [Exp] ")" ;
+Ecall.    Exp14   ::= Exp14 "." Exp15 ;
+Eproj.    Exp14   ::= Exp14 "->" Exp15 ;
+Eincb.    Exp14   ::= Exp14 "++" ;
+EDecb.    Exp14   ::= Exp14 "--" ;
+Einc.     Exp13   ::= "++" Exp13 ;
+EDec.     Exp13   ::= "--" Exp13 ;
+EDer.     Exp13   ::= "*" Exp13 ;
+ENeg.     Exp13   ::= "!" Exp13 ;
+Emult.    Exp12   ::= Exp12 "*" Exp13 ;
+Ediv.     Exp12   ::= Exp12 "/" Exp13 ;
+Erem.     Exp12   ::= Exp12 "%" Exp13 ;
+Eadd.     Exp11   ::= Exp11 "+" Exp12 ;
+Esub.     Exp11   ::= Exp11 "-" Exp12 ;
+ELShift.  Exp10   ::= Exp10 "<<" Exp11 ;
+ERShift.  Exp10   ::= Exp10 ">>" Exp11 ;
+Eless.    Exp9    ::= Exp9 "<" Exp10 ;
+Egr.      Exp9    ::= Exp9 ">" Exp10 ;
+Eleq.     Exp9    ::= Exp9 "<=" Exp10 ;
+Egeq.     Exp9    ::= Exp9 ">=" Exp10 ;
+Eeq.      Exp8    ::= Exp8 "==" Exp9 ;
+Eineq.    Exp8    ::= Exp8 "!=" Exp9 ;
+Econj.    Exp4    ::= Exp4 "&&" Exp5 ;
+Edisj.    Exp3    ::= Exp3 "||" Exp4 ;
+Eass.     Exp2   ::= Exp3 "=" Exp2 ;
+EAssAdd.  Exp2   ::= Exp3 "+=" Exp2 ;
+EAssSub.  Exp2   ::= Exp3 "-=" Exp2 ;
+ECond.    Exp2   ::= Exp3 "?" Exp ":" Exp2 ;
+EExc.     Exp     ::= "throw" Exp ;
+coercions Exp 16 ;
+separator Exp "," ;
+separator nonempty String "" ;
 
 TInt.	  Type	  ::= "int" ;
+TBool.    Type    ::= "bool" ;
+TChar.    Type    ::= "char" ;
+TDouble.  Type    ::= "double" ;
+TVoid.    Type    ::= "void" ;
 TQual.	  Type	  ::= Qual ;
+Tref.     Type    ::= Type "&" ;
 
-QSingle.  Qual	  ::= Id ;
-QList.	  Qual	  ::= Id "::" [Id] ;
+QDef.     Qual	  ::= [Id] ;
 
 separator nonempty Id "::" ;
 
-token Ident1 (letter (letter | digit | '_')*) ;
+token CIdent (letter (letter | digit | '_')*) ;
 
-DId.   	  Id 	  ::= Ident1 ;
+DId.   	  Id 	  ::= CIdent ;
 
+comment "//" ;
+comment "/*" "*/" ;
+comment "#" ;
