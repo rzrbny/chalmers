@@ -120,19 +120,12 @@ prop_onTopOf_assoc :: Hand -> Hand -> Hand  -> Bool
 prop_onTopOf_assoc p1 p2 p3 =
   p1<+(p2<+p3)==(p1<+p2)<+p3
 
--- | Generates a hand with numeric cards with value lower than n of a suit
-partialSuit :: Integer -> Suit -> Hand
-partialSuit 2 s = Add (Card (Numeric 2) s) Empty
-partialSuit n s = Add (Card (Numeric n) s) (partialSuit (n-1) s)
-
 -- | Generates a hand with a full suit of 13 cards
 fullSuit :: Suit -> Hand
-fullSuit s =  Add (Card Ace   s)
-             (Add (Card King  s)
-             (Add (Card Queen s)
-             (Add (Card Jack  s) Empty)))
-             <+ partialSuit 10 s
-
+fullSuit s = foldr Add Empty cards
+  where
+    ranks = [Ace,King,Queen,Jack] ++ [Numeric n | n <- [10,9..2]]
+    cards = [Card r s | r <- ranks]
 -- | Generates a hand with a full deck of 52 cards
 fullDeck :: Hand
 fullDeck = fullSuit Hearts <+ fullSuit Spades <+ fullSuit Diamonds <+ fullSuit Clubs
@@ -192,7 +185,7 @@ prop_shuffleSize g d = size (shuffle g d) == size d
 prop_shuffleSameCards :: StdGen -> Card -> Hand -> Bool
 prop_shuffleSameCards g c d = belongsTo c d == belongsTo c (shuffle g d)
 
--- | Removes nth card from a deck and return deck and card
+-- | Removes nth card from a deck and returns deck and card
 remove :: Integer -> Hand -> (Card,Hand)
 remove 0 (Add c d) = (c,d)
 remove n (Add c d) = (c',Add c d')
@@ -210,7 +203,27 @@ belongsTo :: Card -> Hand -> Bool
 belongsTo c Empty      = False
 belongsTo c (Add c' d) = c == c' || belongsTo c d
 
--- | Test decks
-d1 = Add (Card Ace Hearts) (
-     Add (Card King Diamonds) (
-     Add (Card (Numeric 5) Clubs) Empty))
+-- | Same n cards
+isTop :: Hand -> Hand -> Bool
+isTop Empty h                  = True
+isTop d     Empty              = False
+isTop (Add c1 h1) (Add c2  h2) = (c1 == c2) && isTop h1 h2
+
+isIn :: Hand -> Hand -> Bool
+isIn h Empty = False
+isIn h d     | size h <= size d = isTop h d || isTop h d'
+             | otherwise        = False
+  where (Add c d') = d
+
+copyCards :: Integer -> Hand -> Hand
+copyCards 0 h         = Empty
+copyCards n (Add c h) = Add c (copyCards (n-1) h)
+
+hasSequence :: Integer -> Hand -> Hand -> Bool
+hasSequence n h d | size h == n = isIn (copyCards n h) d
+                  | size h >  n = isIn (copyCards n h) d || hasSequence n h' d
+                  | otherwise   = False
+  where Add _ h' = h
+
+prop_shuffleShuffles ::  StdGen -> Bool
+prop_shuffleShuffles g = not (hasSequence 4 (shuffle g fullDeck) fullDeck)
