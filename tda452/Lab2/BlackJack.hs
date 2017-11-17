@@ -76,9 +76,9 @@ value' (Add c h) = valueCard c + value' h
 value :: Hand -> Integer
 value h | v > 21    = v - n * 10
         | otherwise = v
-    where
-      n = numberOfAces h
-      v = value' h
+  where
+    n = numberOfAces h
+    v = value' h
 
 -- | Property: the value of a hand is less than the value with maxed Aces
 prop_valueAndAces :: Hand -> Bool
@@ -112,13 +112,16 @@ prop_bankWinBust guest bank = gameOver guest ==> winner guest bank == Bank
 
 -- | Puts a hand on top of another
 (<+) :: Hand -> Hand -> Hand
-(<+) Empty     h2 = h2
-(<+) (Add c h) h2 = Add c (h<+h2)
+Empty     <+ h2 = h2
+(Add c h) <+ h2 = Add c (h<+h2)
 
 -- | Appending hands is a associative operation
 prop_onTopOf_assoc :: Hand -> Hand -> Hand  -> Bool
 prop_onTopOf_assoc p1 p2 p3 =
   p1<+(p2<+p3)==(p1<+p2)<+p3
+
+prop_size_onTopOf :: Hand -> Hand -> Bool  
+prop_size_onTopOf h h' = size (h <+ h') == size h + size h'
 
 -- | Generates a hand with a full suit of 13 cards
 fullSuit :: Suit -> Hand
@@ -126,14 +129,17 @@ fullSuit s = foldr Add Empty cards
   where
     ranks = [Ace,King,Queen,Jack] ++ [Numeric n | n <- [10,9..2]]
     cards = [Card r s | r <- ranks]
+    
 -- | Generates a hand with a full deck of 52 cards
 fullDeck :: Hand
-fullDeck = fullSuit Hearts <+ fullSuit Spades <+ fullSuit Diamonds <+ fullSuit Clubs
+fullDeck = fullSuit Hearts <+ fullSuit Spades <+
+           fullSuit Diamonds <+ fullSuit Clubs
 
 -- | Any "valid" card is a part of the full deck
 prop_fullDeckFull :: Card -> Bool
-prop_fullDeckFull (Card (Numeric n) s) = (n >=2 && n <= 10) == belongsTo (Card (Numeric n) s) fullDeck
-prop_fullDeckFull c                    = belongsTo c fullDeck
+prop_fullDeckFull (Card (Numeric n) s)
+  = (n >=2 && n <= 10) == belongsTo (Card (Numeric n) s) fullDeck
+prop_fullDeckFull c = belongsTo c fullDeck
 
 -- | A full deck contains 52 cards
 prop_full :: Bool
@@ -178,12 +184,12 @@ shuffle g d     = Add c (shuffle g' d')
     (c,d') = remove n d
 
 -- | Shuffling preserves size
-prop_shuffleSize :: StdGen -> Hand -> Bool
-prop_shuffleSize g d = size (shuffle g d) == size d
+prop_size_shuffle :: StdGen -> Hand -> Bool
+prop_size_shuffle g d = size (shuffle g d) == size d
 
 -- | Shuffling doesn't change the cards in the deck
-prop_shuffleSameCards :: StdGen -> Card -> Hand -> Bool
-prop_shuffleSameCards g c d = belongsTo c d == belongsTo c (shuffle g d)
+prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool
+prop_shuffle_sameCards g c d = belongsTo c d == belongsTo c (shuffle g d)
 
 -- | Removes nth card from a deck and returns deck and card
 remove :: Integer -> Hand -> (Card,Hand)
