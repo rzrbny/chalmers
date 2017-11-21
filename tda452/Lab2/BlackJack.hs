@@ -11,7 +11,7 @@ implementation = Interface
   , iFullDeck = fullDeck
   , iValue    = value
   , iGameOver = gameOver
-  , iWinner   = winner 
+  , iWinner   = winner
   , iDraw     = draw
   , iPlayBank = playBank
   , iShuffle  = shuffle
@@ -42,7 +42,7 @@ prop_empty = Empty == empty
 
 -- | The Integer value of a Rank
 valueRank :: Rank -> Integer
-valueRank (Numeric n) | n < 2       = 2 
+valueRank (Numeric n) | n < 2       = 2
                       | n > 10      = 10
                       | otherwise   = n
 valueRank Ace                       = 11
@@ -70,23 +70,23 @@ prop_acesFewer h = (numberOfAces h <= size h) && (numberOfAces h >= 0)
 -- | Value of hand where Ace counts as 11
 value' :: Hand -> Integer
 value' Empty     = 0
-value' (Add c h) = valueCard c + value' h  
+value' (Add c h) = valueCard c + value' h
 
 -- | Value of hand
 value :: Hand -> Integer
 value h | v > 21    = v - n * 10
         | otherwise = v
-  where
-    n = numberOfAces h
-    v = value' h
+    where
+      n = numberOfAces h
+      v = value' h
 
 -- | Property: the value of a hand is less than the value with maxed Aces
 prop_valueAndAces :: Hand -> Bool
 prop_valueAndAces h | n == 0    = value h == value' h
                     | n == 1    = value h <= value' h
-                    | otherwise = value h <  value' h 
+                    | otherwise = value h <  value' h
     where n = numberOfAces h
-      
+
 -- | Is the player bust
 gameOver :: Hand -> Bool
 gameOver h = value h > 21
@@ -97,12 +97,12 @@ winner guest bank
            | gameOver guest           = Bank
            | gameOver bank            = Guest
            | value guest > value bank = Guest
-           | otherwise                = Bank   
+           | otherwise                = Bank
 
--- | Property: Given equally valued hands the bank allways wins 
+-- | Property: Given equally valued hands the bank allways wins
 prop_bankWinEqual :: Hand -> Hand -> Property
 prop_bankWinEqual guest bank = value guest == value bank ==>
-                               winner guest bank == Bank 
+                               winner guest bank == Bank
 
 -- | Property: If the player busts the bank wins
 prop_bankWinBust :: Hand -> Hand -> Property
@@ -112,49 +112,45 @@ prop_bankWinBust guest bank = gameOver guest ==> winner guest bank == Bank
 
 -- | Puts a hand on top of another
 (<+) :: Hand -> Hand -> Hand
-Empty     <+ h2 = h2
-(Add c h) <+ h2 = Add c (h<+h2)
+Empty <+ hand2 = hand2
+(Add card hand) <+ hand2 = Add card (hand <+ hand2)
 
--- | Appending hands is a associative operation
+-- | Appending hands is an associative operation
 prop_onTopOf_assoc :: Hand -> Hand -> Hand  -> Bool
 prop_onTopOf_assoc p1 p2 p3 =
   p1<+(p2<+p3)==(p1<+p2)<+p3
 
-prop_size_onTopOf :: Hand -> Hand -> Bool  
-prop_size_onTopOf h h' = size (h <+ h') == size h + size h'
+-- | Property: size of the combined hand should be the sum of the sizes
+-- | of the two individual hands
+prop_size_onTopOf :: Hand -> Hand -> Bool
+prop_size_onTopOf p1 p2 =
+    (size p1 + size p2) == size (p1 <+ p2)
 
--- | Generates a hand with a full suit of 13 cards
-fullSuit :: Suit -> Hand
-fullSuit s = foldr Add Empty cards
-  where
-    ranks = [Ace,King,Queen,Jack] ++ [Numeric n | n <- [10,9..2]]
-    cards = [Card r s | r <- ranks]
-    
 -- | Generates a hand with a full deck of 52 cards
 fullDeck :: Hand
-fullDeck = fullSuit Hearts <+ fullSuit Spades <+
-           fullSuit Diamonds <+ fullSuit Clubs
+fullDeck = foldr Add Empty cards
+  where
+    ranks = [Ace,King,Queen,Jack] ++ [Numeric n | n <- [10,9..2]]
+    suits = [Hearts,Spades,Diamonds,Clubs]
+    cards = [Card r s | s <- suits, r <- ranks]
 
--- | Any "valid" card is a part of the full deck
+-- | Property: any "valid" card is a part of the full deck
 prop_fullDeckFull :: Card -> Bool
-prop_fullDeckFull (Card (Numeric n) s)
-  = (n >=2 && n <= 10) == belongsTo (Card (Numeric n) s) fullDeck
-prop_fullDeckFull c = belongsTo c fullDeck
+prop_fullDeckFull (Card (Numeric n) s) = (n >=2 && n <= 10) ==
+                                         belongsTo (Card (Numeric n) s)
+                                          fullDeck
+prop_fullDeckFull c                    = belongsTo c fullDeck
 
--- | A full deck contains 52 cards
+-- | Property: a full deck contains 52 cards
 prop_full :: Bool
 prop_full = size fullDeck == 52
-
--- | A full deck contains 4 Aces
-prop_fourAces :: Bool
-prop_fourAces = numberOfAces fullDeck == 4
 
 -- | Add the top card of the second hand to the first
 draw :: Hand -> Hand -> (Hand, Hand)
 draw Empty     h = error "draw: The deck is empty."
 draw (Add c d) h = (d, Add c h)
 
--- | Drawing a card preserves the total number of cards
+-- | Property: drawing a card preserves the total number of cards
 prop_drawTotal :: Hand -> Hand -> Bool
 prop_drawTotal d h | d /= Empty = size d + size h == size d' + size h'
                    | otherwise  = True
@@ -170,7 +166,7 @@ playBank' d b | value b >= 16 = b
               | otherwise     = playBank' d' b'
   where (d',b') = draw d b
 
--- | Given a deck with value >= 16 the bank will score >= 16
+-- | Property: given a deck with value >= 16 the bank will score >= 16
 prop_playBank16 :: Hand -> Bool
 prop_playBank16 d | value d >= 16 = value (playBank d) >= 16
                   | otherwise     = True
@@ -183,13 +179,13 @@ shuffle g d     = Add c (shuffle g' d')
     (n,g') = randomR (0,size d - 1) g
     (c,d') = remove n d
 
--- | Shuffling preserves size
+-- | Property: shuffling preserves deck size
 prop_size_shuffle :: StdGen -> Hand -> Bool
 prop_size_shuffle g d = size (shuffle g d) == size d
 
--- | Shuffling doesn't change the cards in the deck
-prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool
-prop_shuffle_sameCards g c d = belongsTo c d == belongsTo c (shuffle g d)
+-- | Property: shuffling doesn't change the cards in the deck
+prop_shuffleSameCards :: StdGen -> Card -> Hand -> Bool
+prop_shuffleSameCards g c d = belongsTo c d == belongsTo c (shuffle g d)
 
 -- | Removes nth card from a deck and returns deck and card
 remove :: Integer -> Hand -> (Card,Hand)
@@ -197,7 +193,7 @@ remove 0 (Add c d) = (c,d)
 remove n (Add c d) = (c',Add c d')
   where (c',d') = remove (n-1) d
 
--- | Remove decreases size of deck by 1
+-- | Property: remove decreases size of deck by 1
 prop_removeDecr :: Integer -> Hand -> Property
 prop_removeDecr n h = m < size h && h /= Empty ==> size d + 1 == size h
   where
@@ -209,27 +205,45 @@ belongsTo :: Card -> Hand -> Bool
 belongsTo c Empty      = False
 belongsTo c (Add c' d) = c == c' || belongsTo c d
 
--- | Same n cards
+{- The following functions are for testing that shuffle produces a deck of
+   random order. We express this as the fact that a shuffled deck should
+   not contain sequences of cards similar to the unshuffled deck. We can
+   calculate that even a sequence of 4 cards appearing in both is highly
+   unlikely, at least in the order of e-4. -}
+
+-- | Checks if the first deck is the top of the second deck
 isTop :: Hand -> Hand -> Bool
 isTop Empty h                  = True
 isTop d     Empty              = False
 isTop (Add c1 h1) (Add c2  h2) = (c1 == c2) && isTop h1 h2
 
+-- | Checks if a sequence of cards is contained in a deck
 isIn :: Hand -> Hand -> Bool
 isIn h Empty = False
 isIn h d     | size h <= size d = isTop h d || isTop h d'
              | otherwise        = False
   where (Add c d') = d
 
+-- | Copies the n first cards of a deck into a new deck
 copyCards :: Integer -> Hand -> Hand
 copyCards 0 h         = Empty
 copyCards n (Add c h) = Add c (copyCards (n-1) h)
 
+-- | Checks if there exists a sequence of n cards in the first deck
+--   that is also a sequence in the second deck
 hasSequence :: Integer -> Hand -> Hand -> Bool
 hasSequence n h d | size h == n = isIn (copyCards n h) d
-                  | size h >  n = isIn (copyCards n h) d || hasSequence n h' d
+                  | size h >  n = isIn (copyCards n h) d ||
+                    hasSequence n h' d
                   | otherwise   = False
   where Add _ h' = h
 
-prop_shuffleShuffles ::  StdGen -> Bool
-prop_shuffleShuffles g = not (hasSequence 4 (shuffle g fullDeck) fullDeck)
+-- | Checks if a a sequence of length n in a shuffled full deck is contained
+--   in the unshuffled deck
+shuffleShuffles ::  StdGen -> Integer -> Bool
+shuffleShuffles g n = not (hasSequence n (shuffle g fullDeck) fullDeck)
+
+-- | The odds of a shuffled deck containing a sequence of 5 cards from the
+--   unshuffled full deck is almost zero
+prop_shuffleShuffles4 :: StdGen -> Bool
+prop_shuffleShuffles4 g = shuffleShuffles g 4
